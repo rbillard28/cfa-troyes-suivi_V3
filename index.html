@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi CFA Troyes - Pilotage Réel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50 font-sans flex min-h-screen">
+
+    <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between hidden md:flex shrink-0">
+        <div class="p-5">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="zap" class="w-6 h-6 text-white"></i></div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">CFA Troyes</h1>
+                    <span class="text-xs text-slate-400">Atelier Électrotechnique</span>
+                </div>
+            </div>
+            
+            <nav class="space-y-1">
+                <button data-target="tab-dashboard" class="nav-link w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium transition text-left">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard
+                </button>
+                <button data-target="tab-catalog" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left">
+                    <i data-lucide="layers" class="w-5 h-5"></i> Catalogue & Tarifs
+                </button>
+                <button data-target="tab-amortissement" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left">
+                    <i data-lucide="calculator" class="w-5 h-5"></i> Amortissements
+                </button>
+            </nav>
+        </div>
+        <div class="p-5 border-t border-slate-800 text-xs text-slate-500 text-center">API CFA Troyes v2.1</div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-10 shrink-0">
+            <h2 id="page-title" class="text-xl font-bold text-gray-800">Tableau de bord budgétaire</h2>
+            <div class="flex items-center gap-4">
+                <span id="sync-status" class="bg-amber-50 text-amber-700 text-xs px-3 py-1.5 rounded-full font-semibold border border-amber-200 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Synchronisation en cours...
+                </span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            <div id="tab-dashboard" class="tab-content space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Budget Global Projeté (26-27)</p>
+                            <h3 id="kpi-budget" class="text-2xl font-bold text-gray-950 mt-1">--- €</h3>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-lg text-emerald-600"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Effectif Apprenants Visé</p>
+                            <h3 id="kpi-effectif" class="text-2xl font-bold text-gray-950 mt-1">---</h3>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-lg text-blue-600"><i data-lucide="users" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Coût de Session Moyen / Tête</p>
+                            <h3 id="kpi-cout-moyen" class="text-2xl font-bold text-gray-950 mt-1">--- €</h3>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg text-purple-600"><i data-lucide="trending-up" class="w-6 h-6"></i></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-gray-900 mb-4">Coûts unitaires consommables par Travaux Pratiques (€ / apprenant)</h4>
+                    <div class="relative h-72 w-full">
+                        <canvas id="liveChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-catalog" class="tab-content hidden space-y-4">
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <h3 class="text-lg font-bold text-gray-900">Référentiel composants & fournitures</h3>
+                        <input type="text" id="search-catalog" placeholder="Filtrer par désignation ou référence..." class="w-full sm:w-72 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
+                                <tr class="text-sm font-semibold text-gray-600 border-b border-gray-200">
+                                    <th class="p-3 bg-gray-50">Désignation</th>
+                                    <th class="p-3 bg-gray-50">Catégorie</th>
+                                    <th class="p-3 bg-gray-50">Référence</th>
+                                    <th class="p-3 bg-gray-50 text-right">Tarif Réduit</th>
+                                    <th class="p-3 bg-gray-50 text-right">Plein Tarif</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalog-rows" class="text-sm text-gray-700 divide-y divide-gray-100">
+                                <tr><td colspan="5" class="p-8 text-center text-gray-400 italic">En attente de l'API...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-amortissement" class="tab-content hidden space-y-4">
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-900 mb-1">Amortissement & Usure Matériel Durable</h3>
+                    <p class="text-sm text-gray-500 mb-4">Coûts d'usure calculés à l'unité de TP.</p>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
+                                <tr class="border-b border-gray-200 text-sm font-semibold text-gray-600">
+                                    <th class="p-3 bg-gray-50">Équipement</th>
+                                    <th class="p-3 bg-gray-50">Unité</th>
+                                    <th class="p-3 bg-gray-50 text-right">Indice d'usure par rotation TP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="amortissement-rows" class="text-sm text-gray-700 divide-y divide-gray-100">
+                                <tr><td colspan="3" class="p-8 text-center text-gray-400 italic">En attente de l'API...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 🔗 LIEN APPS SCRIPT UNIQUE (Gardez bien les guillemets simples ou doubles de l'encapsulation JS)
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrqY4qjQlA1sQSmbKbMAvKVFCFyw7carq7dqhmdeXEwSDrJNF4Q_AMMk4SgnodqXrc/exec?action=lire_donnees";
+
+        let catalogueGlobal = [];
+        let myChart = null;
+
+        // ROUTAGE NAVIGATION
+        const navLinks = document.querySelectorAll('.nav-link');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const pageTitle = document.getElementById('page-title');
+        const titles = { 'tab-dashboard': 'Tableau de bord budgétaire', 'tab-catalog': 'Catalogue de Matériel', 'tab-amortissement': 'Plan de Durabilité & Amortissement' };
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('text-slate-300', 'hover:bg-slate-800'); });
+                link.classList.add('bg-blue-600', 'text-white');
+                tabContents.forEach(tab => tab.classList.add('hidden'));
+                const target = link.getAttribute('data-target');
+                document.getElementById(target).classList.remove('hidden');
+                pageTitle.textContent = titles[target];
+            });
+        });
+
+        // CHARGEMENT API ASYNC
+        function initialiserDonnees() {
+            if (APPS_SCRIPT_URL.includes("VOTRE_ID_SÉCURISÉ_ICI")) {
+                majStatutConnexion('erreur', 'URL API non configurée');
+                return;
+            }
+
+            fetch(APPS_SCRIPT_URL)
+                .then(res => res.json())
+                .then(json => {
+                    if (json.statut === "succes") {
+                        majStatutConnexion('succes', 'Connecté au Sheet CFA');
+                        
+                        const db = json.donnees.dashboard;
+                        catalogueGlobal = json.donnees.catalogue;
+
+                        // Remplissage des blocs KPIs
+                        document.getElementById('kpi-budget').textContent = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(db.budgetProjete);
+                        document.getElementById('kpi-effectif').textContent = db.effectif + " apprenants";
+                        if(db.effectif > 0) {
+                            document.getElementById('kpi-cout-moyen').textContent = (db.budgetProjete / db.effectif).toFixed(2) + " €";
+                        }
+
+                        // Rendu Tableaux & Graphique
+                        genererGraphique(db.graphLabels, db.graphData);
+                        afficherCatalogue(catalogueGlobal);
+                        afficherAmortissements(json.donnees.amortissements);
+                    } else {
+                        majStatutConnexion('erreur', 'Erreur Sheet : ' + json.message);
+                    }
+                })
+                .catch(err => {
+                    majStatutConnexion('erreur', 'Échec de connexion réseau');
+                    console.error(err);
+                });
+        }
+
+        function majStatutConnexion(type, msg) {
+            const el = document.getElementById('sync-status');
+            if(type === 'succes') {
+                el.className = "bg-green-50 text-green-700 text-xs px-3 py-1.5 rounded-full font-semibold border border-green-200 flex items-center gap-1.5";
+                el.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> ' + msg;
+            } else {
+                el.className = "bg-red-50 text-red-700 text-xs px-3 py-1.5 rounded-full font-semibold border border-red-200 flex items-center gap-1.5";
+                el.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> ' + msg;
+            }
+        }
+
+        function genererGraphique(labels, data) {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Coût Consommables / Apprenant (€)',
+                        data: data,
+                        backgroundColor: 'rgba(37, 99, 235, 0.85)',
+                        borderRadius: 4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function afficherCatalogue(liste) {
+            const tbody = document.getElementById('catalog-rows');
+            if(!liste.length) { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400">Vide</td></tr>'; return; }
+            tbody.innerHTML = liste.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 font-medium text-gray-900">${item.designation}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 bg-gray-100 border text-gray-600 text-xs rounded">${item.categorie}</span></td>
+                    <td class="p-3 font-mono text-xs text-gray-500">${item.reference}</td>
+                    <td class="p-3 text-right font-bold text-blue-600">${item.prixReduit.toFixed(2)} €</td>
+                    <td class="p-3 text-right text-gray-400">${item.prixComplet.toFixed(2)} €</td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('search-catalog').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filtre = catalogueGlobal.filter(x => x.designation.toLowerCase().includes(query) || x.reference.toLowerCase().includes(query));
+            afficherCatalogue(filtre);
+        });
+
+        function afficherAmortissements(liste) {
+            const tbody = document.getElementById('amortissement-rows');
+            if(!liste.length) { tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-400">Vide</td></tr>'; return; }
+            tbody.innerHTML = liste.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 font-medium text-gray-900">${item.equipement}</td>
+                    <td class="p-3 text-gray-400 text-xs">${item.unite}</td>
+                    <td class="p-3 text-right font-semibold text-purple-700">${item.usureParTP.toFixed(2)} € / TP</td>
+                </tr>
+            `).join('');
+        }
+
+        lucide.createIcons();
+        initialiserDonnees();
+    </script>
+</body>
+</html>
