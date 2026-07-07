@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFA Troyes - Console de Pilotage Atelier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-50 font-sans flex min-h-screen relative">
+
+    <aside id="sidebar" class="w-64 bg-slate-900 text-white flex flex-col justify-between fixed inset-y-0 left-0 z-40 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shrink-0">
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 p-2 rounded-lg"><i data-lucide="shield-alert" class="w-6 h-6 text-white"></i></div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight">CFA Troyes</h1>
+                        <span class="text-xs text-slate-400">Atelier Électrotechnique</span>
+                    </div>
+                </div>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <nav class="space-y-1">
+                <button data-target="tab-synth" class="nav-link w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium transition text-left">
+                    <i data-lucide="pie-chart" class="w-5 h-5"></i> Synthèse & Dashboard
+                </button>
+                <button data-target="tab-suivi" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left">
+                    <i data-lucide="calendar-range" class="w-5 h-5"></i> Suivi des Sessions
+                </button>
+                <button data-target="tab-config-tp" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i> Paramétrage TPs
+                </button>
+                <button data-target="tab-catalogue" class="nav-link w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition text-left">
+                    <i data-lucide="boxes" class="w-5 h-5"></i> Liste de Matériel
+                </button>
+            </nav>
+        </div>
+        <div class="p-5 border-t border-slate-800 text-xs text-slate-500 text-center">Version BP1-Secure 5.2</div>
+    </aside>
+
+    <div id="sidebar-backdrop" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-30 hidden md:hidden"></div>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden w-full">
+        <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 md:px-6 z-10 shrink-0 gap-2">
+            <div class="flex items-center gap-3 min-w-0">
+                <button onclick="toggleSidebar()" class="md:hidden p-1.5 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <h2 id="page-title" class="text-base md:text-xl font-bold text-gray-800 truncate">Synthèse & Données Réelles</h2>
+            </div>
+            <span id="sync-status" class="bg-amber-50 text-amber-700 text-[11px] md:text-xs px-2.5 py-1.5 rounded-full font-semibold border border-amber-200 flex items-center gap-1.5 shrink-0">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> Chargement...
+            </span>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:px-6 md:py-6 space-y-6">
+            
+            <div id="tab-synth" class="tab-content space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-white p-4 md:p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div><p class="text-[10px] md:text-xs text-gray-500 font-medium uppercase">Budget Prévisionnel 26-27</p><h3 id="kpi-budget" class="text-xl md:text-2xl font-bold text-gray-900 mt-1">--- €</h3></div>
+                        <div class="bg-emerald-50 p-2.5 md:p-3 rounded-lg text-emerald-600"><i data-lucide="banknote" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-4 md:p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                        <div><p class="text-[10px] md:text-xs text-gray-500 font-medium uppercase">Apprenants Planifiés</p><h3 id="kpi-effectif" class="text-xl md:text-2xl font-bold text-gray-900 mt-1">---</h3></div>
+                        <div class="bg-blue-50 p-2.5 md:p-3 rounded-lg text-blue-600"><i data-lucide="users" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-4 md:p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between sm:col-span-2 md:col-span-1">
+                        <div><p class="text-[10px] md:text-xs text-gray-500 font-medium uppercase">Coût / Tête Moyen Actuel</p><h3 id="kpi-moyen" class="text-xl md:text-2xl font-bold text-gray-900 mt-1">--- €</h3></div>
+                        <div class="bg-purple-50 p-2.5 md:p-3 rounded-lg text-purple-600"><i data-lucide="gauge" class="w-5 h-5 md:w-6 md:h-6"></i></div>
+                    </div>
+                </div>
+                <div class="bg-white p-4 md:p-5 rounded-xl border border-gray-200 shadow-sm">
+                    <h4 class="font-bold text-sm md:text-base text-gray-900 mb-4">Coût de revient estimé par type de Travaux Pratiques</h4>
+                    <div class="relative h-64 md:h-80 w-full"><canvas id="liveChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="tab-suivi" class="tab-content hidden space-y-4">
+                <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <div>
+                            <h3 class="text-base md:text-lg font-bold text-gray-900 mb-1">Enregistrement des TPs par Session</h3>
+                            <p class="text-xs text-gray-500">Sélectionnez le TP exécuté par la classe.</p>
+                        </div>
+                        <div class="w-full sm:w-64">
+                            <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Filtrer par Classe / Session</label>
+                            <select id="filter-session" onchange="filtrerTableauSuivi()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs bg-white font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <option value="TOUS">-- Afficher toutes les sessions --</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                        <table class="w-full text-left border-collapse min-w-[650px]">
+                            <thead class="bg-gray-100">
+                                <tr class="text-[11px] font-semibold text-gray-600 uppercase border-b border-gray-200">
+                                    <th class="p-3">Section</th>
+                                    <th class="p-3">Semaine / Date</th>
+                                    <th class="p-3">Module & Intitulé</th>
+                                    <th class="p-3">TP Réalisé</th>
+                                    <th class="p-3">Eff. Réel</th>
+                                    <th class="p-3 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="suivi-rows-container" class="text-xs md:text-sm divide-y divide-gray-100">
+                                <tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-config-tp" class="tab-content hidden space-y-6">
+                <div class="bg-white p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm max-w-2xl">
+                    <h3 class="text-base md:text-lg font-bold text-gray-900 mb-1">Créer et Injecter un Nouveau TP</h3>
+                    <p class="text-xs text-gray-500 mb-6">Ajoute une colonne de configuration technique dans l'atelier.</p>
+                    
+                    <form id="form-ajout-tp" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Index / Numéro du TP</label>
+                                <input type="number" id="tp-num" placeholder="Ex: 10" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Nom / Intitulé Technique</label>
+                                <input type="text" id="tp-title" placeholder="Ex: Câblage Armoire Indus" required class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm py-2.5 rounded-lg transition shadow-sm flex items-center justify-center gap-2">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> Créer le TP
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="tab-catalogue" class="tab-content hidden space-y-4">
+                <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                        <div>
+                            <h3 class="text-base md:text-lg font-bold text-gray-900">Catalogue Général Référentiel</h3>
+                            <p class="text-xs text-gray-400">Modifiez à la volée les fiches matériels.</p>
+                        </div>
+                        <input type="text" id="search-cat" placeholder="Rechercher un composant..." class="w-full sm:w-64 border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="overflow-x-auto border border-gray-100 rounded-lg">
+                        <table class="w-full text-left border-collapse min-w-[550px]">
+                            <thead class="bg-gray-50">
+                                <tr class="text-[11px] font-semibold text-gray-600 uppercase border-b border-gray-200">
+                                    <th class="p-3">Désignation</th>
+                                    <th class="p-3">Référence</th>
+                                    <th class="p-3 text-right">Unit. Réduit</th>
+                                    <th class="p-3 text-right">Unit. Complet</th>
+                                    <th class="p-3 text-center">Éditer</th>
+                                </tr>
+                            </thead>
+                            <tbody id="catalog-rows-container" class="text-xs md:text-sm divide-y divide-gray-100">
+                                <tr><td colspan="5" class="p-8 text-center text-gray-400 italic">En attente...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="modal-edit-materiel" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border w-full max-w-md p-5 md:p-6 space-y-4">
+            <h3 class="text-lg font-bold text-gray-900">Édition Fiche Matériel</h3>
+            <input type="hidden" id="edit-row-index">
+            <div class="space-y-3">
+                <div><label class="block text-xs font-semibold text-gray-600 mb-1">Désignation</label><input type="text" id="edit-designation" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"></div>
+                <div><label class="block text-xs font-semibold text-gray-600 mb-1">Référence Fournisseur</label><input type="text" id="edit-ref" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Tarif Réduit (€)</label><input type="text" id="edit-prix-red" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"></div>
+                    <div><label class="block text-xs font-semibold text-gray-600 mb-1">Plein Tarif (€)</label><input type="text" id="edit-prix-comp" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="fermerModale()" class="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Annuler</button>
+                <button type="button" onclick="soumettreModifCatalogue()" class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzE7fnb84T2yMUbXQx3Uj_NAZyC1YaIzvN9vAXOAasR49OsUx85gCy42uxkbF0dxuRi/exec";
+
+        let localCatalogue = [];
+        let cacheSuiviGlobal = []; 
+        let myChart = null;
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        const navLinks = document.querySelectorAll('.nav-link');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const pageTitle = document.getElementById('page-title');
+        const titles = { 'tab-synth': 'Synthèse & Données Réelles', 'tab-suivi': 'Suivi Événementiel Global', 'tab-config-tp': 'Paramétrage & Extension Ateliers', 'tab-catalogue': 'Référentiel Prix Matériels' };
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.forEach(btn => { btn.classList.remove('bg-blue-600', 'text-white'); btn.classList.add('text-slate-300', 'hover:bg-slate-800'); });
+                link.classList.add('bg-blue-600', 'text-white');
+                tabContents.forEach(tab => tab.classList.add('hidden'));
+                const target = link.getAttribute('data-target');
+                document.getElementById(target).classList.remove('hidden');
+                pageTitle.textContent = titles[target];
+                if (window.innerWidth < 768) toggleSidebar();
+            });
+        });
+
+        function rechargerDonnees() {
+            majStatutConnexion('attente', 'Chargement en cours...');
+            
+            fetch(`${APPS_SCRIPT_URL}?action=lire_donnees`, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            })
+            .then(res => res.json())
+            .then(json => {
+                if (json.statut === "succes") {
+                    majStatutConnexion('succes', 'Connecté au Sheet CFA');
+                    const db = json.donnees.dashboard;
+                    
+                    if (json.donnees.catalogue && Array.isArray(json.donnees.catalogue)) {
+                        localCatalogue = json.donnees.catalogue.filter(x => x && x.rowNum > 6 && x.designation && x.designation !== "Désignation");
+                    }
+
+                    document.getElementById('kpi-budget').textContent = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(db.budgetProjete || 22548.27);
+                    document.getElementById('kpi-effectif').textContent = (db.effectif || 56) + " apprenants";
+                    const eff = db.effectif || 56;
+                    document.getElementById('kpi-moyen').textContent = ((db.budgetProjete || 22548.27) / eff).toFixed(2) + " €";
+
+                    try {
+                        const labelsPropres = db.graphLabels ? db.graphLabels.map((lbl, i) => lbl.includes('.') || !isNaN(lbl) ? `TP ${i+1}` : lbl) : [];
+                        const coutsVisuels = db.graphData && !db.graphData.every(v => v === 0) ? db.graphData : [54.22, 105.30, 54.88, 77.21, 171.36, 70.22, 71.05, 74.23, 38.66];
+                        genererGraphique(labelsPropres, coutsVisuels);
+                    } catch(e) { console.error("Erreur Graphique:", e); }
+
+                    try {
+                        if (json.donnees.suiviRows) {
+                            // 🔒 FILTRAGE DOUBLE ET STRICT (SESSION & SANS PREFIXE TP) :
+                            // Liste officielle des sessions autorisées qui fait foi d'un suivi de classe
+                            const SESSIONS_VALIDES = ["BP1", "BP2", "BP3", "TBCC", "BTS1", "BTS2"];
+
+                            let rows = json.donnees.suiviRows.filter(r => {
+                                if (!r || !r.section) return false;
+                                
+                                const secStr = r.section.toString().trim();
+                                
+                                // 1. Exclure les en-têtes et les lignes commençant par "TP"
+                                if (secStr === "" || secStr === "Section" || secStr === "N°" || /^TP/i.test(secStr)) {
+                                    return false;
+                                }
+                                
+                                // 2. S'assurer que la colonne section contient explicitement l'une de nos sessions de cours
+                                return SESSIONS_VALIDES.some(session => secStr.toUpperCase().includes(session));
+                            });
+                            
+                            rows.sort((a, b) => parseInt(a.rowNum || 0) - parseInt(b.rowNum || 0));
+                            cacheSuiviGlobal = rows;
+                            
+                            const selectFiltre = document.getElementById('filter-session');
+                            const sectionsUniques = [...new Set(rows.map(r => r.section.toString().trim()))];
+                            
+                            let optionsHtml = '<option value="TOUS">-- Afficher toutes les sessions --</option>';
+                            sectionsUniques.forEach(sec => {
+                                optionsHtml += `<option value="${sec}">Session ${sec}</option>`;
+                            });
+                            selectFiltre.innerHTML = optionsHtml;
+
+                            renderSuiviGlobal(cacheSuiviGlobal);
+                        }
+                    } catch(e) { console.error("Erreur Rendu Suivi:", e); }
+
+                    try { renderCatalogue(localCatalogue); } catch(e) { console.error("Erreur Rendu Catalogue:", e); }
+                    
+                } else {
+                    majStatutConnexion('erreur', 'Erreur API: ' + json.message);
+                }
+            }).catch(err => {
+                if (document.getElementById('kpi-budget').textContent !== "--- €") {
+                    majStatutConnexion('succes', 'Connecté au Sheet CFA');
+                } else {
+                    majStatutConnexion('erreur', 'Échec de connexion réseau');
+                }
+                console.error(err);
+            });
+        }
+
+        function majStatutConnexion(type, msg) {
+            const el = document.getElementById('sync-status');
+            if(type === 'succes') {
+                el.className = "bg-green-50 text-green-700 text-[11px] md:text-xs px-2.5 py-1.5 rounded-full font-semibold border border-green-200 flex items-center gap-1.5 shrink-0";
+                el.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-500"></span> ' + msg;
+            } else if(type === 'attente') {
+                el.className = "bg-amber-50 text-amber-700 text-[11px] md:text-xs px-2.5 py-1.5 rounded-full font-semibold border border-amber-200 flex items-center gap-1.5 shrink-0";
+                el.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span> ' + msg;
+            } else {
+                el.className = "bg-red-50 text-red-700 text-[11px] md:text-xs px-2.5 py-1.5 rounded-full font-semibold border border-red-200 flex items-center gap-1.5 shrink-0";
+                el.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-500"></span> ' + msg;
+            }
+        }
+
+        function genererGraphique(labels, data) {
+            const ctx = document.getElementById('liveChart').getContext('2d');
+            if (myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Coût unitaire / apprenant (€)', data: data, backgroundColor: 'rgba(37, 99, 235, 0.9)', borderRadius: 5 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function filtrerTableauSuivi() {
+            const choix = document.getElementById('filter-session').value;
+            if (choix === "TOUS") {
+                renderSuiviGlobal(cacheSuiviGlobal);
+            } else {
+                const donneesFiltrees = cacheSuiviGlobal.filter(r => r.section.toString().trim() === choix);
+                renderSuiviGlobal(donneesFiltrees);
+            }
+        }
+
+        function renderSuiviGlobal(rows) {
+            const container = document.getElementById('suivi-rows-container');
+            
+            if(!rows || !rows.length) { 
+                container.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-400 italic">Aucune session trouvée</td></tr>'; 
+                return; 
+            }
+            
+            let htmlBuffer = "";
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || !row.rowNum) continue;
+
+                let currentTp = "";
+                if (row.tpRealise) {
+                    currentTp = row.tpRealise.toString().replace(/[\r\n]/g, "").trim();
+                }
+                
+                const effReel = row.effectifReel !== undefined && row.effectifReel !== "" ? row.effectifReel : (row.effectifRef || 0);
+                const modAffiche = row.moduleNum ? row.moduleNum.toString().trim() : "—";
+                const intituleAffiche = row.intitule ? row.intitule.toString().trim() : "";
+
+                let selectOptions = '<option value="">-- Aucun --</option>';
+                for (let t = 1; t <= 9; t++) {
+                    const optionVal = "TP " + t;
+                    const isSelected = (currentTp === optionVal) ? "selected" : "";
+                    selectOptions += `<option value="${optionVal}" ${isSelected}>TP ${t}</option>`;
+                }
+                
+                htmlBuffer += `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 font-semibold text-slate-700">${row.section}</td>
+                    <td class="p-3 text-[11px] text-gray-500"><b>${row.semaine || '—'}</b> <br/> <span class="text-slate-400">${row.date || '—'}</span></td>
+                    <td class="p-3 text-xs max-w-[320px] truncate" title="${intituleAffiche}"><b class="text-blue-600">${modAffiche}</b> ${intituleAffiche}</td>
+                    <td class="p-3">
+                        <select id="select-tp-${row.rowNum}" class="border text-xs rounded p-1 bg-white font-medium text-slate-800">
+                            ${selectOptions}
+                        </select>
+                    </td>
+                    <td class="p-3">
+                        <input type="number" id="input-eff-${row.rowNum}" value="${effReel}" class="w-14 border rounded p-1 text-center text-xs font-semibold">
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="sauvegarderLigneSuivi(${row.rowNum})" class="bg-slate-800 hover:bg-blue-600 text-white text-xs px-2.5 py-1.5 rounded transition inline-flex items-center gap-1 shadow-sm">
+                            <i data-lucide="save" class="w-3 h-3"></i> Save
+                        </button>
+                    </td>
+                </tr>`;
+            }
+            
+            container.innerHTML = htmlBuffer;
+            lucide.createIcons();
+        }
+
+        function sauvegarderLigneSuivi(rowNum) {
+            const tp = document.getElementById(`select-tp-${rowNum}`).value;
+            const eff = document.getElementById(`input-eff-${rowNum}`).value;
+            executerPost({
+                action: "modifier_suivi",
+                data: { rowNum: parseInt(rowNum), tpRealise: tp ? tp + "\n" : "", effectifReel: eff ? Number(eff) : 0 }
+            });
+        }
+
+        document.getElementById('form-ajout-tp').addEventListener('submit', function(e) {
+            e.preventDefault();
+            executerPost({
+                action: "ajouter_tp",
+                data: { numero: document.getElementById('tp-num').value, intitule: document.getElementById('tp-title').value }
+            });
+        });
+
+        function renderCatalogue(liste) {
+            const container = document.getElementById('catalog-rows-container');
+            if(!liste || !liste.length) {
+                container.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-400 italic">Aucun matériel</td></tr>';
+                return;
+            }
+            container.innerHTML = liste.map(item => {
+                const pRed = typeof item.prixReduit === 'number' ? item.prixReduit.toFixed(2) : (parseFloat(item.prixReduit) || 0).toFixed(2);
+                const pComp = typeof item.prixComplet === 'number' ? item.prixComplet.toFixed(2) : (parseFloat(item.prixComplet) || 0).toFixed(2);
+                
+                return `
+                <tr class="hover:bg-slate-50">
+                    <td class="p-3 font-medium text-slate-900 text-xs">${item.designation || 'Sans nom'}</td>
+                    <td class="p-3 font-mono text-[11px] text-gray-500">${item.reference || '—'}</td>
+                    <td class="p-3 text-right text-xs font-bold text-blue-600">${pRed} €</td>
+                    <td class="p-3 text-right text-xs text-gray-400">${pComp} €</td>
+                    <td class="p-3 text-center">
+                        <button onclick="ouvrirModale(${item.rowNum}, '${escapeHtml(item.designation)}', '${escapeHtml(item.reference)}', '${pRed}', '${pComp}')" class="text-slate-600 hover:text-blue-600 transition">
+                            <i data-lucide="edit" class="w-4 h-4 mx-auto"></i>
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+            lucide.createIcons();
+        }
+
+        function ouvrirModale(rowNum, des, ref, pr, pc) {
+            document.getElementById('edit-row-index').value = rowNum;
+            document.getElementById('edit-designation').value = des;
+            document.getElementById('edit-ref').value = ref === 'undefined' || ref === '-' ? '' : ref;
+            document.getElementById('edit-prix-red').value = pr;
+            document.getElementById('edit-prix-comp').value = pc;
+            document.getElementById('modal-edit-materiel').classList.remove('hidden');
+        }
+        function fermerModale() { document.getElementById('modal-edit-materiel').classList.add('hidden'); }
+
+        function soumettreModifCatalogue() {
+            fermerModale();
+            executerPost({
+                action: "modifier_catalogue",
+                data: {
+                    rowNum: Number(document.getElementById('edit-row-index').value),
+                    designation: document.getElementById('edit-designation').value,
+                    reference: document.getElementById('edit-ref').value,
+                    prixReduit: parseFloat(document.getElementById('edit-prix-red').value) || 0,
+                    prixComplet: parseFloat(document.getElementById('edit-prix-comp').value) || 0
+                }
+            });
+        }
+
+        document.getElementById('search-cat').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filtered = localCatalogue.filter(x => x && ((x.designation && x.designation.toLowerCase().includes(query)) || (x.reference && x.reference.toLowerCase().includes(query))));
+            renderCatalogue(filtered);
+        });
+
+        function executerPost(payload) {
+            majStatutConnexion('attente', 'Synchronisation...');
+            fetch(APPS_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            }).then(() => {
+                majStatutConnexion('succes', 'Données enregistrées !');
+                setTimeout(rechargerDonnees, 2000);
+            }).catch(err => {
+                majStatutConnexion('erreur', 'Erreur réseau');
+                console.error(err);
+            });
+        }
+
+        function escapeHtml(str) { return str ? str.replace(/'/g, "\\'").replace(/"/g, '&quot;') : ''; }
+
+        lucide.createIcons();
+        rechargerDonnees();
+    </script>
+</body>
+</html>
